@@ -1,0 +1,33 @@
+Package: excelsioR
+Title: Tidy Retrieval of Often Untidy Spreadsheet Data
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Cesaire",
+           family = "Tobias",
+           role = c("aut", "cre"),
+           email = "cesairetobias@hotmail.com",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: Read and write data between R and Excel.
+Depends:
+    R (>= 4.0.0)
+Imports:
+    assertR,
+    dplyr, 
+    fileR,
+    glue,
+    openxlsx,
+    purrr, 
+    rstudioapi, 
+    stringr,
+    tibble,
+    tidyr,
+    tidyxl,
+    XLConnect,
+    zoo
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.0
+Suggests: 
+    testthat
