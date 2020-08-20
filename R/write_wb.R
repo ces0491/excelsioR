@@ -161,3 +161,37 @@ write_wb.list <- function(r_data, clear_sheet = TRUE, wb = NULL, wb_dir = NULL, 
   wb
 
 }
+
+#' Write nested tibbles to multiple workbooks
+#'
+#' @param write_tbl an object of class \code{tbl_df} with columns name, object and data
+#' @param write_dir string indicating the directory to write data to
+#' @param ... additional arguments to other methods
+#'
+#' @export
+#'
+write_wb_multi <- function(write_tbl, write_dir, ...) {
+
+  assertR::assert_allpresent(names(write_tbl), c("name", "object", "data"))
+
+  file_names <- unique(write_tbl$name)
+
+  # write one file per file_name containing separate sheets per object
+  for (fname in names) {
+    write_tbl_single <- dplyr::filter(write_tbl, name == fname)
+
+    for (n in 1:nrow(write_tbl_single)) {
+
+      sheet <- write_tbl_single$object[[n]]
+
+      write_to_wb(r_data = write_tbl_single$data[[n]],
+                           sheet_name = sheet,
+                           clear_sheet = TRUE,
+                           wb = NULL,
+                           file_directory = glue::glue("{write_dir}/{fname}.xlsx"),
+                           save_wb = TRUE,
+                           ...)
+    }
+  }
+
+}
