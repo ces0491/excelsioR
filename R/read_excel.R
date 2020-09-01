@@ -22,7 +22,7 @@ read_excel_single <- function(file_path, reqd_sheets) {
   # if reqd sheets is NA, all available sheets in the workbook are read in
   if (any(is.na(reqd_sheets))) {
     raw_excel <- suppressWarnings(tidyxl::xlsx_cells(file_path, sheets = reqd_sheets))
-    fractalAssert::assert_allpresent(names(raw_excel), "sheet")
+    assertR::assert_present(names(raw_excel), "sheet")
 
     wsheet_list <- raw_excel %>%
       dplyr::group_split(sheet)

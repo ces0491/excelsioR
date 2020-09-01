@@ -7,7 +7,7 @@
 #'
 load_wb <- function(wb = NULL, wb_dir = NULL) {
 
-  fractalAssert::assert_true( (!is.null(wb)) | (!is.null(wb_dir)), "Can't have a NULL workbook and wb_dir")
+  assertR::assert_true( (!is.null(wb)) | (!is.null(wb_dir)), "Can't have a NULL workbook and wb_dir")
 
   if (is.null(wb)) {
 
