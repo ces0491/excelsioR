@@ -10,7 +10,7 @@ unlock_wb <- function(file_dir, options.java.params = NULL) {
 
   options(java.parameters = options.java.params)
 
-  assertR::assert_present(names(file_dir), c("file_path", "file_name"), "logic error")
+  assertR::assert_present(names(file_dir), c("file_path", "file_name"))
 
   wb_password <- rstudioapi::askForPassword("Please enter password to unlock workbook") # enter password via rstudio api rather than a string for security
 
