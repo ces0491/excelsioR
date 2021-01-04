@@ -1,11 +1,13 @@
 #' read data from workbooks
 #'
+#' Data is read from a copy of the specified workbooks rather than the original to prevent potential file corruption of the original
+#'
 #' @param source_data_dir string indicating source directory
 #' @param reqd_wkbks character vector indicating the names of the files you wish to extract from source_dir. default NA extracts all workbooks in the dir
 #' @param reqd_sheets character vector containing names of sheets to extract data from. default NA extracts from all sheets in workbook
 #' @param password_protected logical indicating whether the excel files are password protected. Password must be the same for multiple file reads
-#' @param dest_data_dir optional string indicating destination directory - default NULL will use temp directory
 #' @param overwrite logical indicating whether files in the destination directory should be overwritten. FALSE results in no copy rather than duplicates
+#' @param dest_data_dir optional string indicating destination directory - default NULL will use temp directory
 #'
 #' @return \code{tbl_df} with columns file_name, raw_excel_data and all_excel_data_tbl
 #' @export
