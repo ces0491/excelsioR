@@ -1,0 +1,294 @@
+---
+title: "Getting Started with excelsioR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with excelsioR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Introduction
+
+excelsioR helps you read and write Excel files, with special handling for messy,
+real-world spreadsheets. It's built on top of tidyxl for reading (which preserves
+cell-level information) and openxlsx for writing.
+
+## Installation
+
+```{r}
+# Install from GitHub
+devtools::install_github("ces0491/excelsioR")
+```
+
+```{r setup}
+library(excelsioR)
+library(dplyr)
+```
+
+## Writing Excel Files
+
+### Basic Write Operations
+
+Write a data frame to an Excel file:
+
+```{r}
+# Write mtcars to an Excel file
+write_wb(
+  mtcars,
+  sheet_name = "cars",
+  wb_dir = "my_data.xlsx",
+ save_wb = TRUE
+)
+```
+
+### Writing to Specific Cells
+
+You can specify where to paste the data using Excel-style cell references.
+excelsioR supports multi-letter columns (AA, AB, etc.):
+
+```{r}
+# Write starting at cell B5
+write_wb(
+  iris[1:10, ],
+  sheet_name = "flowers",
+  paste_coord = "B5",
+  wb_dir = "positioned_data.xlsx",
+  save_wb = TRUE
+)
+
+# Write to column AA (27th column)
+write_wb(
+  data.frame(x = 1:5),
+  sheet_name = "Sheet1",
+  paste_coord = "AA1",
+  wb_dir = "wide_sheet.xlsx",
+  save_wb = TRUE
+)
+```
+
+### Multiple Sheets
+
+Write multiple data frames to different sheets using a named list:
+
+```{r}
+# Create a list of data frames
+my_sheets <- list(
+  summary = data.frame(metric = c("Total", "Average"), value = c(100, 50)),
+  details = mtcars[1:10, ],
+  metadata = data.frame(created = Sys.Date(), author = "Me")
+)
+
+# Write all sheets at once
+write_wb(my_sheets, wb_dir = "multi_sheet_report.xlsx", save_wb = TRUE)
+```
+
+### Time Series Data
+
+zoo and xts objects are automatically converted with a date column:
+
+```{r}
+library(zoo)
+
+# Create a zoo time series
+dates <- seq(as.Date("2024-01-01"), by = "day", length.out = 30)
+values <- data.frame(
+  price = cumsum(rnorm(30)),
+  volume = rpois(30, 100)
+)
+ts_data <- zoo(values, dates)
+
+# Write to Excel - date column is added automatically
+write_wb(
+  ts_data,
+  sheet_name = "daily_data",
+  wb_dir = "timeseries.xlsx",
+  save_wb = TRUE
+)
+```
+
+## Reading Excel Files
+
+### Basic Read Operations
+
+Read all Excel files from a directory:
+
+```{r}
+# Read all Excel files
+data <- read_wb("path/to/excel/files")
+
+# View the structure
+data
+#> # A tibble: 3 x 3
+#>   file_name    raw_excel_data all_excel_data_tbl
+#>   <chr>        <list>         <list>
+#> 1 sales_2024   <named list>   <tibble>
+#> 2 inventory    <named list>   <tibble>
+#> 3 forecast     <named list>   <tibble>
+```
+
+### Filtering Files and Sheets
+
+```{r}
+# Read specific workbooks
+data <- read_wb(
+  source_data_dir = "path/to/files",
+  reqd_wkbks = c("sales_2024", "inventory")
+)
+
+# Read specific sheets from all workbooks
+data <- read_wb(
+  source_data_dir = "path/to/files",
+  reqd_sheets = c("Summary", "Q4")
+)
+```
+
+### Working with the Output
+
+The output has three columns:
+
+- `file_name`: Cleaned file name (no extension, special characters replaced)
+- `raw_excel_data`: Nested list of raw tidyxl cell data per sheet
+- `all_excel_data_tbl`: Nested tibble of processed tidy data
+
+```{r}
+# Extract processed data for one file
+sales_data <- data %>%
+  filter(file_name == "sales_2024") %>%
+  pull(all_excel_data_tbl) %>%
+  .[[1]]
+
+# The tidy data has columns: sheet, row, col, numeric, character, date
+head(sales_data)
+#>   sheet row col  numeric character       date
+#> 1 Sheet1   2   2   1000.5    Revenue 2024-01-01
+#> 2 Sheet1   3   2   2500.0    Revenue 2024-02-01
+```
+
+### Safe Reading
+
+By default, `read_wb()` copies files to a temp directory before reading. This
+prevents accidental corruption of your source files:
+
+```{r}
+# Files are copied to a timestamped temp folder
+data <- read_wb("important/data")
+#> No dest_data_dir specified. Source data will be copied to:
+#>   C:/Users/.../Temp/read_wb_data/source_data_copy_20240115
+#> This copied data will be cleared when your session restarts.
+
+# Or specify your own destination
+data <- read_wb(
+  "important/data",
+  dest_data_dir = "working/copies"
+)
+```
+
+## Password-Protected Files
+
+### Reading Protected Files
+
+```{r}
+# Will prompt for password in RStudio
+data <- read_wb("protected/files", password_protected = TRUE)
+```
+
+### Unlocking Files Directly
+
+```{r}
+# Prepare file info
+files_to_unlock <- data.frame(
+  file_path = c("file1.xlsx", "file2.xlsx"),
+  file_name = c("file1", "file2")
+)
+
+# Unlock (will prompt for password)
+unlock_wb(files_to_unlock)
+
+# Or provide password directly (less secure)
+unlock_wb(files_to_unlock, wb_password = "secret123")
+```
+
+### Backend Selection
+
+excelsioR supports two backends for password protection:
+
+```{r}
+# Auto-select (prefers rpxl if available)
+unlock_wb(files, wb_password = "secret")
+
+# Force rpxl (Python-based, no Java)
+unlock_wb(files, wb_password = "secret", backend = "rpxl")
+
+# Force XLConnect (Java-based)
+unlock_wb(files, wb_password = "secret", backend = "xlconnect")
+```
+
+Install backends:
+
+```{r}
+# rpxl (recommended - lighter weight)
+remotes::install_github("epicentre-msf/rpxl")
+
+# XLConnect (requires Java)
+install.packages("XLConnect")
+```
+
+## Tips and Best Practices
+
+### 1. Use the Raw Data for Complex Spreadsheets
+
+The `all_excel_data_tbl` column makes assumptions about your data structure.
+For complex or unusual layouts, work with `raw_excel_data` directly:
+
+```{r}
+# Get raw tidyxl data
+raw <- data$raw_excel_data[[1]]$Sheet1
+
+# This has all cell information: row, col, data_type, formula, etc.
+raw %>%
+  filter(!is_blank) %>%
+  select(row, col, character, numeric, date)
+```
+
+### 2. Batch Processing
+
+Process multiple files efficiently:
+
+```{r}
+# Read all files
+all_data <- read_wb("monthly_reports")
+
+# Process each file's data
+results <- all_data %>%
+  mutate(
+    summary = purrr::map(all_excel_data_tbl, ~ {
+      .x %>%
+        group_by(character) %>%
+        summarise(total = sum(numeric, na.rm = TRUE))
+    })
+  )
+```
+
+### 3. Writing Reports
+
+Build up a workbook incrementally:
+
+```{r}
+# Create workbook
+wb <- write_wb(summary_data, sheet_name = "Summary", wb_dir = "report.xlsx")
+
+# Add more sheets to the same workbook
+wb <- write_wb(detail_data, sheet_name = "Details", wb = wb)
+wb <- write_wb(chart_data, sheet_name = "Charts", wb = wb)
+
+# Save at the end
+openxlsx::saveWorkbook(wb, "report.xlsx", overwrite = TRUE)
+```

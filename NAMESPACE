@@ -2,8 +2,12 @@
 
 S3method(write_wb,default)
 S3method(write_wb,list)
+S3method(write_wb,xts)
 S3method(write_wb,zoo)
+export("%>%")
+export(get_file_names)
 export(read_wb)
 export(unlock_wb)
 export(write_wb)
 export(write_wb_multi)
+importFrom(dplyr,"%>%")

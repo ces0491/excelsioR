@@ -2,7 +2,7 @@
 % Please edit documentation in R/read_wb.R
 \name{read_wb}
 \alias{read_wb}
-\title{read data from workbooks}
+\title{Read data from Excel workbooks}
 \usage{
 read_wb(
   source_data_dir,
@@ -14,21 +14,86 @@ read_wb(
 )
 }
 \arguments{
-\item{source_data_dir}{string indicating source directory}
+\item{source_data_dir}{string indicating the source directory containing Excel files}
 
-\item{reqd_wkbks}{character vector indicating the names of the files you wish to extract from source_dir. default NA extracts all workbooks in the dir}
+\item{reqd_wkbks}{character vector of workbook names to extract (without extension).
+Default NA extracts all workbooks in the directory.}
 
-\item{reqd_sheets}{character vector containing names of sheets to extract data from. default NA extracts from all sheets in workbook}
+\item{reqd_sheets}{character vector of sheet names to extract.
+Default NA extracts all sheets from each workbook.}
 
-\item{password_protected}{logical indicating whether the excel files are password protected. Password must be the same for multiple file reads}
+\item{password_protected}{logical indicating whether the Excel files are password protected.
+If TRUE, you will be prompted for the password. All files must share the same password.}
 
-\item{overwrite}{logical indicating whether files in the destination directory should be overwritten. FALSE results in no copy rather than duplicates}
+\item{overwrite}{logical indicating whether to overwrite existing files in the destination
+directory. FALSE preserves existing files and skips duplicates.}
 
-\item{dest_data_dir}{optional string indicating destination directory - default NULL will use temp directory}
+\item{dest_data_dir}{optional string indicating destination directory for file copies.
+Default NULL uses a temp directory that is cleared when your R session ends.}
 }
 \value{
-\code{tbl_df} with columns file_name, raw_excel_data and all_excel_data_tbl
+tbl_df with columns:
+\itemize{
+\item \code{file_name}: cleaned name of the source file
+\item \code{raw_excel_data}: nested list of raw cell data per sheet (from tidyxl)
+\item \code{all_excel_data_tbl}: nested tibble of processed tidy data
+}
 }
 \description{
-read data from workbooks
+Reads data from Excel workbooks in a directory and returns it in a tidy format.
+For safety, data is read from a timestamped copy of the workbooks rather than
+the originals to prevent potential file corruption.
+}
+\section{Workflow}{
+
+\enumerate{
+\item Scans source directory for Excel files
+\item Creates timestamped copy of files in destination directory
+\item Unlocks password-protected files if needed
+\item Reads raw cell data using tidyxl
+\item Processes data into tidy format
+}
+}
+
+\examples{
+\dontrun{
+# Read all Excel files from a directory
+data <- read_wb("path/to/excel/files")
+
+# View the structure
+data
+#> # A tibble: 3 x 3
+#>   file_name    raw_excel_data all_excel_data_tbl
+#>   <chr>        <list>         <list>
+#> 1 sales_2024   <named list>   <tibble>
+#> 2 inventory    <named list>   <tibble>
+
+# Read specific workbooks
+data <- read_wb(
+  source_data_dir = "path/to/files",
+  reqd_wkbks = c("sales_2024", "inventory")
+)
+
+# Read specific sheets from all workbooks
+data <- read_wb(
+  source_data_dir = "path/to/files",
+  reqd_sheets = c("Summary", "Q4")
+)
+
+# Extract processed data for one file
+sales_data <- data \%>\%
+  dplyr::filter(file_name == "sales_2024") \%>\%
+  dplyr::pull(all_excel_data_tbl) \%>\%
+  .[[1]]
+
+# Access raw tidyxl data for complex layouts
+raw <- data$raw_excel_data[[1]]$Sheet1
+raw \%>\%
+  dplyr::filter(!is_blank) \%>\%
+  dplyr::select(row, col, character, numeric, date)
+}
+
+}
+\seealso{
+\code{\link[=get_excel_data_tbl]{get_excel_data_tbl()}} for details on how data is tidied
 }

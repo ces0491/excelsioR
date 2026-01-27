@@ -2,18 +2,18 @@
 % Please edit documentation in R/write_wb.R
 \name{load_wb}
 \alias{load_wb}
-\title{load a workbook object from file or use the current workbook if it exists}
+\title{Load a workbook object from file or use the current workbook if it exists}
 \usage{
 load_wb(wb = NULL, wb_dir = NULL)
 }
 \arguments{
 \item{wb}{optional workbook object}
 
-\item{wb_dir}{optional path to a file to load if file doesn't exist it will just save the file}
+\item{wb_dir}{optional path to a file to load; if file doesn't exist it will create a new workbook}
 }
 \value{
 workbook object. See \link[openxlsx]{loadWorkbook}
 }
 \description{
-load a workbook object from file or use the current workbook if it exists
+Load a workbook object from file or use the current workbook if it exists
 }

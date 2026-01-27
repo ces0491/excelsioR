@@ -2,7 +2,8 @@
 % Please edit documentation in R/write_wb.R
 \name{write_wb.zoo}
 \alias{write_wb.zoo}
-\title{Write an object of class \code{zoo} or \code{xts} to excel}
+\alias{write_wb.xts}
+\title{Write an object of class zoo or xts to Excel}
 \usage{
 \method{write_wb}{zoo}(
   r_data,
@@ -14,24 +15,54 @@
   save_wb = FALSE,
   ...
 )
+
+\method{write_wb}{xts}(
+  r_data,
+  sheet_name,
+  paste_coord = "A1",
+  clear_sheet = TRUE,
+  wb = NULL,
+  wb_dir = NULL,
+  save_wb = FALSE,
+  ...
+)
 }
 \arguments{
-\item{r_data}{an object of class \code{zoo}}
+\item{r_data}{an object of class \code{zoo} or \code{xts}}
 
 \item{sheet_name}{a string indicating the name of the sheet to write to}
 
-\item{paste_coord}{string indicating the coordinates of the top left cell you wish to write data to - default "A1"}
+\item{paste_coord}{string indicating the coordinates of the top left cell to write data to.
+Supports multi-letter columns. Default is "A1".}
 
-\item{clear_sheet}{logical indicating whether you'd like to clear the contents of the destination sheet before writing - default TRUE}
+\item{clear_sheet}{logical indicating whether to clear the contents of the destination sheet
+before writing. Default is TRUE.}
 
-\item{wb}{workbook object - default NULL}
+\item{wb}{workbook object. Default is NULL.}
 
-\item{wb_dir}{string indicating the workbook's directory}
+\item{wb_dir}{string indicating the workbook's file path}
 
-\item{save_wb}{logical indicating whether workbook should be saved}
+\item{save_wb}{logical indicating whether workbook should be saved. Default is FALSE.}
 
 \item{...}{arguments for other methods}
 }
+\value{
+The workbook object (invisibly)
+}
 \description{
-Write an object of class \code{zoo} or \code{xts} to excel
+Converts the time series to a data frame with a date column and writes to Excel.
+}
+\examples{
+\dontrun{
+library(zoo)
+
+# Create a zoo time series
+dates <- seq(as.Date("2024-01-01"), by = "day", length.out = 10)
+values <- data.frame(price = cumsum(rnorm(10)), volume = rpois(10, 100))
+ts_data <- zoo(values, dates)
+
+# Write to Excel - date column is added automatically
+write_wb(ts_data, sheet_name = "daily", wb_dir = "timeseries.xlsx", save_wb = TRUE)
+}
+
 }

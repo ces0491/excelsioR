@@ -1,67 +1,149 @@
-#' read data from workbooks
+#' Read data from Excel workbooks
 #'
-#' Data is read from a copy of the specified workbooks rather than the original to prevent potential file corruption of the original
+#' Reads data from Excel workbooks in a directory and returns it in a tidy format.
+#' For safety, data is read from a timestamped copy of the workbooks rather than
+#' the originals to prevent potential file corruption.
 #'
-#' @param source_data_dir string indicating source directory
-#' @param reqd_wkbks character vector indicating the names of the files you wish to extract from source_dir. default NA extracts all workbooks in the dir
-#' @param reqd_sheets character vector containing names of sheets to extract data from. default NA extracts from all sheets in workbook
-#' @param password_protected logical indicating whether the excel files are password protected. Password must be the same for multiple file reads
-#' @param overwrite logical indicating whether files in the destination directory should be overwritten. FALSE results in no copy rather than duplicates
-#' @param dest_data_dir optional string indicating destination directory - default NULL will use temp directory
+#' @param source_data_dir string indicating the source directory containing Excel files
+#' @param reqd_wkbks character vector of workbook names to extract (without extension).
+#'   Default NA extracts all workbooks in the directory.
+#' @param reqd_sheets character vector of sheet names to extract.
+#'   Default NA extracts all sheets from each workbook.
+#' @param password_protected logical indicating whether the Excel files are password protected.
+#'   If TRUE, you will be prompted for the password. All files must share the same password.
+#' @param overwrite logical indicating whether to overwrite existing files in the destination
+#'   directory. FALSE preserves existing files and skips duplicates.
+#' @param dest_data_dir optional string indicating destination directory for file copies.
+#'   Default NULL uses a temp directory that is cleared when your R session ends.
 #'
-#' @return \code{tbl_df} with columns file_name, raw_excel_data and all_excel_data_tbl
+#' @return tbl_df with columns:
+#'   \itemize{
+#'     \item `file_name`: cleaned name of the source file
+#'     \item `raw_excel_data`: nested list of raw cell data per sheet (from tidyxl)
+#'     \item `all_excel_data_tbl`: nested tibble of processed tidy data
+#'   }
+#'
+#' @section Workflow:
+#' 1. Scans source directory for Excel files
+#' 2. Creates timestamped copy of files in destination directory
+#' 3. Unlocks password-protected files if needed
+#' 4. Reads raw cell data using tidyxl
+#' 5. Processes data into tidy format
+#'
+#' @seealso [get_excel_data_tbl()] for details on how data is tidied
+#'
+#' @examples
+#' \dontrun{
+#' # Read all Excel files from a directory
+#' data <- read_wb("path/to/excel/files")
+#'
+#' # View the structure
+#' data
+#' #> # A tibble: 3 x 3
+#' #>   file_name    raw_excel_data all_excel_data_tbl
+#' #>   <chr>        <list>         <list>
+#' #> 1 sales_2024   <named list>   <tibble>
+#' #> 2 inventory    <named list>   <tibble>
+#'
+#' # Read specific workbooks
+#' data <- read_wb(
+#'   source_data_dir = "path/to/files",
+#'   reqd_wkbks = c("sales_2024", "inventory")
+#' )
+#'
+#' # Read specific sheets from all workbooks
+#' data <- read_wb(
+#'   source_data_dir = "path/to/files",
+#'   reqd_sheets = c("Summary", "Q4")
+#' )
+#'
+#' # Extract processed data for one file
+#' sales_data <- data %>%
+#'   dplyr::filter(file_name == "sales_2024") %>%
+#'   dplyr::pull(all_excel_data_tbl) %>%
+#'   .[[1]]
+#'
+#' # Access raw tidyxl data for complex layouts
+#' raw <- data$raw_excel_data[[1]]$Sheet1
+#' raw %>%
+#'   dplyr::filter(!is_blank) %>%
+#'   dplyr::select(row, col, character, numeric, date)
+#' }
+#'
 #' @export
 #'
-read_wb <- function(source_data_dir, reqd_wkbks = NA, reqd_sheets = NA, password_protected = FALSE, overwrite = TRUE, dest_data_dir = NULL) {
+read_wb <- function(source_data_dir, reqd_wkbks = NA, reqd_sheets = NA,
+                    password_protected = FALSE, overwrite = TRUE, dest_data_dir = NULL) {
 
-  # get file path and names for the source data
+  # Validate source directory
+  if (!dir.exists(source_data_dir)) {
+    stop("Source directory does not exist: ", source_data_dir, call. = FALSE)
+  }
+
+  # Get file paths and names for the source data
   original_file_dir <- get_file_names(source_data_dir)
 
-  # filter out the specific workbooks you require from the source dir. NB: file_name contains no leading numerics, special characters or spaces
-  if(any(!is.na(reqd_wkbks))) {
+  if (nrow(original_file_dir) == 0) {
+    stop("No Excel files found in: ", source_data_dir, call. = FALSE)
+  }
+
+  # Filter to specific workbooks if requested
+  # Note: file_name contains no leading numerics, special characters, or spaces
+  if (any(!is.na(reqd_wkbks))) {
     original_file_dir <- dplyr::filter(original_file_dir, file_name %in% reqd_wkbks)
+
+    if (nrow(original_file_dir) == 0) {
+      stop("None of the requested workbooks found: ",
+           paste(reqd_wkbks, collapse = ", "), call. = FALSE)
+    }
   }
 
-  # create temp folder to copy source data to else use user specified dest_data_dir
+  message(sprintf("Found %d workbook(s) to process", nrow(original_file_dir)))
+
+  # Create temp folder or use user-specified destination
   if (is.null(dest_data_dir)) {
-    dest_data_dir <- glue::glue("{tempdir()}/read_wb_data")
-    message(glue::glue("no dest_data_dir specified. source data will be copied to {dest_data_dir}. this copied data will be cleared when your session restarts"))
-  } else {
-    dest_data_dir <- dest_data_dir
+    dest_data_dir <- file.path(tempdir(), "read_wb_data")
+    message(
+      "No dest_data_dir specified. Source data will be copied to:\n",
+      "  ", dest_data_dir, "\n",
+      "This copied data will be cleared when your session restarts."
+    )
   }
 
-  # create a timestamped folder in the dest_data_dir
-  dest_dir <- glue::glue("{dest_data_dir}/source_data_copy_{format(Sys.Date(), '%Y%m%d')}")
+  # Create a timestamped folder in the destination directory
+  dest_dir <- file.path(dest_data_dir,
+                         paste0("source_data_copy_", format(Sys.Date(), "%Y%m%d")))
 
-  # if the destination directory exists and overwrite is TRUE, clear everything in it
-  if (file.exists(dest_dir) && overwrite) {
-    message("destination directory already exists. clearing contents")
-    do.call(file.remove, list(list.files(dest_dir, full.names = TRUE)))
+  # Handle existing destination directory
+  if (dir.exists(dest_dir) && overwrite) {
+    message("Destination directory exists. Clearing contents...")
+    existing_files <- list.files(dest_dir, full.names = TRUE)
+    if (length(existing_files) > 0) {
+      file.remove(existing_files)
+    }
+  } else if (dir.exists(dest_dir) && !overwrite) {
+    message("Destination directory exists. Duplicate files will not be copied.")
   }
 
-  # here, duplicate files are not copied. only files that exist in source but not destination are copied
-  if (file.exists(dest_dir) && !overwrite) {
-    message("destination directory already exists. duplicate files already in the destination directory will not be copied from source")
-  }
+  # Copy files to destination (creates directory if needed)
+  copy_files(original_file_dir, dest_dir, overwrite)
 
-  # copy files to a separate directory so they can be used without risk of contaminating the original data
-  # if the destination directory does not exist, it will be created
-  fileR::copy_files(original_file_dir, dest_dir, overwrite)
-
-  # get the file names from the directory containing the copied source files
+  # Get file names from the copied directory
   copied_files_dir <- get_file_names(dest_dir)
 
-  # unlock protected wbs
+  # Unlock password-protected workbooks if needed
   if (password_protected) {
     unlock_wb(copied_files_dir)
   }
 
-  # read excel data
+  # Read raw Excel data
+  message("Reading Excel data...")
   raw_excel_data_tbl <- read_excel(copied_files_dir, reqd_sheets)
 
-  # clean raw excel data to return a tidy tbl
+  # Clean raw data to return a tidy tibble
+  message("Processing data...")
   excel_data <- get_excel_data_tbl(raw_excel_data_tbl)
 
+  message("Done!")
   excel_data
-
 }

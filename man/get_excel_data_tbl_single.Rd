@@ -2,16 +2,40 @@
 % Please edit documentation in R/get_excel_data_tbl.R
 \name{get_excel_data_tbl_single}
 \alias{get_excel_data_tbl_single}
-\title{convert list of tbl_dfs extracted from excel to a tibble containing all extracted data}
+\title{Convert raw Excel data to a tidy tibble}
 \usage{
 get_excel_data_tbl_single(raw_excel_data)
 }
 \arguments{
-\item{raw_excel_data}{\code{list} of \code{data.frame}'s containing raw excel data where each list object contains data from a sheet required from the workbook}
+\item{raw_excel_data}{list of data.frames containing raw Excel data,
+where each list element contains data from one worksheet}
 }
 \value{
-\code{tbl_df} with columns sheet, row, col, numeric, character and date
+tbl_df with columns:
+\itemize{
+\item \code{sheet}: worksheet name
+\item \code{row}: row number
+\item \code{col}: column number
+\item \code{numeric}: numeric value (if present)
+\item \code{character}: character value from the leftmost column of each row
+\item \code{date}: date value (if present)
+}
 }
 \description{
-convert list of tbl_dfs extracted from excel to a tibble containing all extracted data
+Processes raw Excel cell data extracted by tidyxl and converts it to a tidy
+tibble format with separate columns for numeric, character, and date values.
 }
+\section{Assumptions}{
+
+This function makes the following assumptions about the spreadsheet structure:
+\itemize{
+\item The leftmost non-blank column in each row contains row labels or variable names
+\item Dates are stored in a dedicated date column and will be matched by column position
+\item Blank cells are excluded from the output
+}
+
+These assumptions work well for financial/time-series data where the first column
+contains variable names and subsequent columns contain values. For other layouts,
+you may need to post-process the output.
+}
+

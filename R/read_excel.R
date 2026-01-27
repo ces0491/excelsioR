@@ -1,36 +1,39 @@
-#' read a single excel workbook
+#' Read a single Excel workbook
 #'
-#' @param file_path string indicating the file path to the workbook of interest
-#' @param reqd_sheets the sheets you'd like to copy from the workbook
+#' Reads raw cell data from an Excel workbook using tidyxl.
 #'
-#' @return a named list containing raw excel data in a tbl_df where the name equals the reqd_sheet
+#' @param file_path string indicating the file path to the workbook
+#' @param reqd_sheets the sheets to read from the workbook. Use NA to read all sheets.
+#'
+#' @return a named list containing raw Excel data in a tbl_df, indexed by sheet name
 #'
 read_excel_single <- function(file_path, reqd_sheets) {
 
-  is_file_open <- function(file_name) {
-    con <- file(description = file_name)
-    isOpen(con)
+  # Check if file is open by another process
+  if (is_file_open(file_path)) {
+    stop(
+      glue::glue("{file_path} appears to be open by another process. Please close it before proceeding."),
+      call. = FALSE
+    )
   }
 
-  if(is_file_open(file_path)) {
-    message(glue::glue("{file_path} is open, please close before proceding"))
-  }
+  assert_true(length(file_path) == 1, "file_path must be a single path")
+  assert_true(file.exists(file_path), paste0("File doesn't exist: ", file_path))
 
-  assertR::assert_true(length(file_path) == 1, "logic error")
-  assertR::assert_true(file.exists(file_path), paste0("File doesn't exist:", file_path))
-
-  # if reqd sheets is NA, all available sheets in the workbook are read in
+  # If reqd_sheets is NA, read all available sheets in the workbook
   if (any(is.na(reqd_sheets))) {
     raw_excel <- suppressWarnings(tidyxl::xlsx_cells(file_path, sheets = reqd_sheets))
-    assertR::assert_present(names(raw_excel), "sheet")
+    assert_present(names(raw_excel), "sheet")
 
-    wsheet_list <- raw_excel %>%
-      dplyr::group_split(sheet)
+    grouped_excel <- raw_excel %>%
+      dplyr::group_by(sheet)
 
-    names(wsheet_list) <- dplyr::group_keys(raw_excel, sheet)[[1]]
+    wsheet_list <- grouped_excel %>%
+      dplyr::group_split()
+
+    names(wsheet_list) <- dplyr::group_keys(grouped_excel)[[1]]
 
   } else {
-
     wsheet_list <- list()
     for (wsheet in reqd_sheets) {
       raw_excel <- suppressWarnings(tidyxl::xlsx_cells(file_path, sheets = wsheet))
@@ -41,22 +44,26 @@ read_excel_single <- function(file_path, reqd_sheets) {
   wsheet_list
 }
 
-#' read excel workbooks in to R
+#' Read Excel workbooks into R
 #'
-#' @param file_names_df \code{data.frame} containing the directories of files you'd like to read
-#' @param reqd_sheets string vector with the names of the worksheets to read in
+#' Reads multiple Excel workbooks and returns raw cell data in a tidy format.
 #'
-#' @return \code{tbl_df} with file_name and raw_excel_data as a nested named list where the list is indexed by the sheet name specified in reqd_sheets
+#' @param file_names_df data.frame containing columns `file_path` and `file_name`
+#' @param reqd_sheets string vector with the names of the worksheets to read. Use NA for all sheets.
+#'
+#' @return tbl_df with columns `file_name` and `raw_excel_data` (a nested named list indexed by sheet name)
 #'
 read_excel <- function(file_names_df, reqd_sheets) {
 
-  assertR::assert_present(names(file_names_df), c("file_path", "file_name"))
+  assert_present(names(file_names_df), c("file_path", "file_name"))
 
+  # Use purrr::map instead of deprecated dplyr::do
   raw_data <- file_names_df %>%
     dplyr::group_by(file_name) %>%
-    dplyr::do(raw_excel_data = read_excel_single(.$file_path, reqd_sheets)) %>% # get list of wsheets from each wbook
-    dplyr::ungroup()
+    dplyr::summarise(
+      raw_excel_data = list(read_excel_single(file_path[[1]], reqd_sheets)),
+      .groups = "drop"
+    )
 
   raw_data
-
 }

@@ -7,12 +7,36 @@
 write_wb_multi(write_tbl, write_dir, ...)
 }
 \arguments{
-\item{write_tbl}{an object of class \code{tbl_df} with columns name, object and data}
+\item{write_tbl}{a tibble with columns:
+\itemize{
+\item \code{name}: file name (without extension)
+\item \code{object}: sheet name
+\item \code{data}: data to write (list column)
+}}
 
-\item{write_dir}{string indicating the directory to write data to}
+\item{write_dir}{string indicating the directory to write files to}
 
-\item{...}{additional arguments to other methods}
+\item{...}{additional arguments passed to write_wb}
 }
 \description{
-Write nested tibbles to multiple workbooks
+Takes a tibble with columns specifying file names, sheet names, and data,
+and writes each data element to the appropriate file and sheet.
+}
+\examples{
+\dontrun{
+# Create a tibble defining multiple workbooks and sheets
+write_tbl <- tibble::tibble(
+  name = c("sales", "sales", "inventory"),
+  object = c("Q1", "Q2", "stock"),
+  data = list(
+    data.frame(month = 1:3, revenue = c(100, 120, 150)),
+    data.frame(month = 4:6, revenue = c(140, 160, 180)),
+    data.frame(item = c("A", "B"), qty = c(50, 30))
+  )
+)
+
+# Creates sales.xlsx (with Q1 and Q2 sheets) and inventory.xlsx (with stock sheet)
+write_wb_multi(write_tbl, write_dir = "output")
+}
+
 }

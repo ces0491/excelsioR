@@ -2,20 +2,57 @@
 % Please edit documentation in R/get_file_names.R
 \name{get_file_names}
 \alias{get_file_names}
-\title{get excel file names from directory}
+\title{Get Excel file names from a directory}
 \usage{
-get_file_names(data_dir, recursive = FALSE, include_dirs = FALSE)
+get_file_names(
+  data_dir,
+  recursive = FALSE,
+  include_dirs = FALSE,
+  extensions = c("xlsx", "xlsm", "xls"),
+  clean_names = TRUE
+)
 }
 \arguments{
-\item{data_dir}{string indicating the directory of interest}
+\item{data_dir}{string indicating the directory to scan}
 
-\item{recursive}{logical indicating whether to return file names recursively}
+\item{recursive}{logical indicating whether to search subdirectories. Default is FALSE.}
 
-\item{include_dirs}{logical indicating whether names of sub directories should also be included}
+\item{include_dirs}{logical indicating whether directory names should be included. Default is FALSE.}
+
+\item{extensions}{character vector of file extensions to include (without the dot).
+Default is \code{c("xlsx", "xlsm", "xls")}.}
+
+\item{clean_names}{logical indicating whether to clean file names (remove leading numbers,
+replace non-alphanumeric characters). Default is TRUE.}
 }
 \value{
-\code{data.frame} with columns file_path and file_name
+data.frame with columns:
+\itemize{
+\item \code{file_path}: full path to the file
+\item \code{file_name}: cleaned file name without extension
+}
 }
 \description{
-get excel file names from directory
+Scans a directory for Excel files and returns a data frame with file paths
+and cleaned file names suitable for use as R variable names.
+}
+\examples{
+\dontrun{
+# Get all Excel files in a directory
+files <- get_file_names("path/to/excel/files")
+files
+#>                         file_path    file_name
+#> 1 path/to/excel/files/sales.xlsx        sales
+#> 2 path/to/excel/files/01 Data.xlsx       Data
+
+# Search subdirectories
+files <- get_file_names("path/to/files", recursive = TRUE)
+
+# Only xlsx files (exclude xls, xlsm)
+files <- get_file_names("path/to/files", extensions = "xlsx")
+
+# Keep original file names without cleaning
+files <- get_file_names("path/to/files", clean_names = FALSE)
+}
+
 }
