@@ -1,48 +1,80 @@
-#' convert list of tbl_dfs extracted from excel to a tibble containing all extracted data
+#' Convert raw Excel data to a tidy tibble
 #'
-#' @param raw_excel_data \code{list} of \code{data.frame}'s containing raw excel data where each list object contains data from a sheet required from the workbook
+#' Processes raw Excel cell data extracted by tidyxl and converts it to a tidy
+#' tibble format with separate columns for numeric, character, and date values.
 #'
-#' @return \code{tbl_df} with columns sheet, row, col, numeric, character and date
+#' @param raw_excel_data list of data.frames containing raw Excel data,
+#'   where each list element contains data from one worksheet
+#'
+#' @return tbl_df with columns:
+#'   \itemize{
+#'     \item `sheet`: worksheet name
+#'     \item `row`: row number
+#'     \item `col`: column number
+#'     \item `numeric`: numeric value (if present)
+#'     \item `character`: character value from the leftmost column of each row
+#'     \item `date`: date value (if present)
+#'   }
+#'
+#' @section Assumptions:
+#' This function makes the following assumptions about the spreadsheet structure:
+#' \itemize{
+#'   \item The leftmost non-blank column in each row contains row labels or variable names
+#'   \item Dates are stored in a dedicated date column and will be matched by column position
+#'   \item Blank cells are excluded from the output
+#' }
+#'
+#' These assumptions work well for financial/time-series data where the first column
+#' contains variable names and subsequent columns contain values. For other layouts,
+#' you may need to post-process the output.
 #'
 get_excel_data_tbl_single <- function(raw_excel_data) {
 
-  assertR::assert_true(is.list(raw_excel_data), "logic error")
+  assert_true(is.list(raw_excel_data), "raw_excel_data must be a list")
 
   raw_excel_df <- raw_excel_data %>%
     tibble::enframe() %>%
     tidyr::unnest(value) %>%
     dplyr::select(-name)
 
-  assertR::assert_present(names(raw_excel_df), c("sheet", "row", "col", "is_blank", "numeric", "date", "character"))
+  assert_present(
+    names(raw_excel_df),
+    c("sheet", "row", "col", "is_blank", "numeric", "date", "character")
+  )
 
+  # Extract numeric values (excluding blank cells)
   num_df <- raw_excel_df %>%
     dplyr::filter(!is_blank) %>%
     dplyr::select(sheet, row, col, numeric) %>%
     tidyr::drop_na()
 
+  # Extract character values from the leftmost column of each row
+  # Assumption: leftmost column contains variable names/row labels
   char_df <- raw_excel_df %>%
     dplyr::filter(!is_blank) %>%
     dplyr::mutate(character = trimws(character, "both")) %>%
     dplyr::group_by(row) %>%
-    dplyr::filter(col == min(col)) %>% # we assume that the left most column contains the characters of interest i.e. variable names
+    dplyr::filter(col == min(col)) %>%
+    dplyr::ungroup() %>%
     dplyr::select(sheet, row, character) %>%
     tidyr::drop_na()
 
+  # Extract date values (convert POSIXct to Date)
   date_df <- raw_excel_df %>%
     dplyr::filter(!is_blank) %>%
     dplyr::select(sheet, col, date) %>%
-    dplyr::mutate(date = as.Date(date)) %>% # tidyxl reads dates as POSIXct so convert to Date
+    dplyr::mutate(date = as.Date(date)) %>%
     tidyr::drop_na() %>%
     dplyr::distinct()
 
-  if(is.data.frame(date_df) && nrow(date_df) == 0) {
+  # Join the data frames
+  if (nrow(date_df) == 0) {
+    # No dates detected - create empty date column
     tidy_df <- num_df %>%
       dplyr::left_join(char_df, by = c("sheet", "row")) %>%
       tidyr::drop_na() %>%
-      dplyr::mutate(date = as.Date(NA)) # if no dates are detected, create a date column of NAs
-
+      dplyr::mutate(date = as.Date(NA))
   } else {
-
     tidy_df <- num_df %>%
       dplyr::left_join(char_df, by = c("sheet", "row")) %>%
       dplyr::left_join(date_df, by = c("sheet", "col")) %>%
@@ -55,15 +87,26 @@ get_excel_data_tbl_single <- function(raw_excel_data) {
   all_excel_data_tbl
 }
 
-#' get single tibbles per file for all required data given lists of tbl_dfs extracted from excel
+#' Process multiple workbooks to tidy tibbles
 #'
-#' @param raw_excel_data_tbl tbl with file_name and nested list of raw excel data
+#' Takes a tibble containing raw Excel data from multiple files and converts
+#' each file's data to a tidy format.
 #'
-#' @return tbl_df with col file_name, nested raw excel data containing named lists of tibbles per sheet, nested tibbles containing combined data
+#' @param raw_excel_data_tbl tbl_df with columns `file_name` and `raw_excel_data`
+#'   (a nested list of raw Excel data per file)
+#'
+#' @return tbl_df with columns:
+#'   \itemize{
+#'     \item `file_name`: name of the source file
+#'     \item `raw_excel_data`: original raw data (nested list)
+#'     \item `all_excel_data_tbl`: processed tidy data (nested tibble)
+#'   }
+#'
+#' @seealso [get_excel_data_tbl_single()] for the assumptions made during processing
 #'
 get_excel_data_tbl <- function(raw_excel_data_tbl) {
 
-  assertR::assert_present(names(raw_excel_data_tbl), c("file_name", "raw_excel_data"))
+  assert_present(names(raw_excel_data_tbl), c("file_name", "raw_excel_data"))
 
   tidy_excel_data_tbl <- raw_excel_data_tbl %>%
     dplyr::group_by(file_name) %>%

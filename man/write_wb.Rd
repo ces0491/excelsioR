@@ -7,10 +7,22 @@
 write_wb(r_data, ...)
 }
 \arguments{
-\item{r_data}{an object to be written to an xlsx workbook when r_data is a list it will use the names of the list as sheet_names}
+\item{r_data}{an object to be written to an xlsx workbook}
 
 \item{...}{arguments for other methods}
 }
 \description{
-Write from R to Excel
+Generic function to write R objects to an Excel workbook. Supports data frames,
+lists (multiple sheets), and zoo/xts time series objects.
+}
+\examples{
+\dontrun{
+# Write a data frame to Excel
+write_wb(mtcars, sheet_name = "cars", wb_dir = "output.xlsx", save_wb = TRUE)
+
+# Write a named list (each element becomes a sheet)
+sheets <- list(cars = mtcars[1:5, ], flowers = iris[1:5, ])
+write_wb(sheets, wb_dir = "multi_sheet.xlsx", save_wb = TRUE)
+}
+
 }

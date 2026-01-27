@@ -2,16 +2,26 @@
 % Please edit documentation in R/get_excel_data_tbl.R
 \name{get_excel_data_tbl}
 \alias{get_excel_data_tbl}
-\title{get single tibbles per file for all required data given lists of tbl_dfs extracted from excel}
+\title{Process multiple workbooks to tidy tibbles}
 \usage{
 get_excel_data_tbl(raw_excel_data_tbl)
 }
 \arguments{
-\item{raw_excel_data_tbl}{tbl with file_name and nested list of raw excel data}
+\item{raw_excel_data_tbl}{tbl_df with columns \code{file_name} and \code{raw_excel_data}
+(a nested list of raw Excel data per file)}
 }
 \value{
-tbl_df with col file_name, nested raw excel data containing named lists of tibbles per sheet, nested tibbles containing combined data
+tbl_df with columns:
+\itemize{
+\item \code{file_name}: name of the source file
+\item \code{raw_excel_data}: original raw data (nested list)
+\item \code{all_excel_data_tbl}: processed tidy data (nested tibble)
+}
 }
 \description{
-get single tibbles per file for all required data given lists of tbl_dfs extracted from excel
+Takes a tibble containing raw Excel data from multiple files and converts
+each file's data to a tidy format.
+}
+\seealso{
+\code{\link[=get_excel_data_tbl_single]{get_excel_data_tbl_single()}} for the assumptions made during processing
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/write_wb.R
 \name{write_wb.list}
 \alias{write_wb.list}
-\title{Write an object of class \code{list} to excel}
+\title{Write an object of class list to Excel}
 \usage{
 \method{write_wb}{list}(
   r_data,
@@ -14,18 +14,36 @@
 )
 }
 \arguments{
-\item{r_data}{an object of class \code{list}}
+\item{r_data}{a named list of objects to write. Names become sheet names.}
 
-\item{clear_sheet}{logical indicating whether you'd like to clear the contents of the destination sheet before writing - default TRUE}
+\item{clear_sheet}{logical indicating whether to clear sheet contents before writing.
+Default is TRUE.}
 
-\item{wb}{workbook object - default NULL}
+\item{wb}{workbook object. Default is NULL.}
 
-\item{wb_dir}{string indicating the workbook's directory}
+\item{wb_dir}{string indicating the workbook's file path}
 
-\item{save_wb}{logical indicating whether workbook should be saved}
+\item{save_wb}{logical indicating whether workbook should be saved. Default is FALSE.}
 
 \item{...}{arguments for other methods}
 }
+\value{
+The workbook object (invisibly)
+}
 \description{
-Write an object of class \code{list} to excel
+Each named element of the list is written to a separate sheet.
+}
+\examples{
+\dontrun{
+# Create a named list of data frames
+my_sheets <- list(
+  summary = data.frame(metric = c("Total", "Average"), value = c(100, 50)),
+  details = mtcars[1:10, ],
+  metadata = data.frame(created = Sys.Date(), author = "Me")
+)
+
+# Write all sheets at once
+write_wb(my_sheets, wb_dir = "multi_sheet_report.xlsx", save_wb = TRUE)
+}
+
 }

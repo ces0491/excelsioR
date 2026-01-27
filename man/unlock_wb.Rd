@@ -2,15 +2,75 @@
 % Please edit documentation in R/unlock_wb.R
 \name{unlock_wb}
 \alias{unlock_wb}
-\title{unlock a protected excel workbook}
+\title{Unlock a protected Excel workbook}
 \usage{
-unlock_wb(file_dir, options.java.params = NULL)
+unlock_wb(
+  file_dir,
+  wb_password = NULL,
+  backend = "auto",
+  options.java.params = NULL
+)
 }
 \arguments{
-\item{file_dir}{\code{data.frame} of file paths and names for files you wish to unlock}
+\item{file_dir}{data.frame with columns \code{file_path} and \code{file_name} for files to unlock}
 
-\item{options.java.params}{optional string argument specifying java parameters}
+\item{wb_password}{optional string argument for the workbook password.
+If NULL, will prompt via RStudio API (recommended for security).}
+
+\item{backend}{character string specifying which backend to use: "auto" (default),
+"rpxl", or "xlconnect". With "auto", rpxl is preferred if available.}
+
+\item{options.java.params}{optional string argument specifying Java parameters
+(e.g., "-Xmx4g"). Only used with XLConnect backend.}
+}
+\value{
+NULL (invisibly). Files are decrypted in place.
 }
 \description{
-unlock a protected excel workbook
+Removes password protection from Excel workbooks. Supports two backends:
+\itemize{
+\item \strong{rpxl} (recommended): Uses Python's msoffcrypto-tool via reticulate. Lighter weight.
+\item \strong{XLConnect}: Uses Java. Heavier but doesn't require Python.
+}
+}
+\details{
+The function automatically selects the available backend, preferring rpxl.
+}
+\section{Backend Installation}{
+
+\strong{rpxl (recommended):}
+\preformatted{
+remotes::install_github("epicentre-msf/rpxl")
+}
+Requires Python with msoffcrypto-tool. rpxl will guide you through setup.
+
+\strong{XLConnect:}
+\preformatted{
+install.packages("XLConnect")
+}
+Requires Java to be installed on your system.
+}
+
+\examples{
+\dontrun{
+# Prepare file info
+files_to_unlock <- data.frame(
+  file_path = c("protected1.xlsx", "protected2.xlsx"),
+  file_name = c("protected1", "protected2")
+)
+
+# Unlock - will prompt for password in RStudio
+unlock_wb(files_to_unlock)
+
+# Or provide password directly (less secure)
+unlock_wb(files_to_unlock, wb_password = "secret123")
+
+# Force specific backend
+unlock_wb(files_to_unlock, wb_password = "secret", backend = "rpxl")
+unlock_wb(files_to_unlock, wb_password = "secret", backend = "xlconnect")
+
+# Use with read_wb for password-protected files
+data <- read_wb("protected_files", password_protected = TRUE)
+}
+
 }

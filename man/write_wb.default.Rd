@@ -2,7 +2,7 @@
 % Please edit documentation in R/write_wb.R
 \name{write_wb.default}
 \alias{write_wb.default}
-\title{Default method for writing to excel}
+\title{Default method for writing to Excel}
 \usage{
 \method{write_wb}{default}(
   r_data,
@@ -16,22 +16,47 @@
 )
 }
 \arguments{
-\item{r_data}{an object to be written to an xlsx workbook when r_data is a list it will use the names of the list as sheet_names}
+\item{r_data}{an object to be written to an xlsx workbook}
 
 \item{sheet_name}{a string indicating the name of the sheet to write to}
 
-\item{paste_coord}{string indicating the coordinates of the top left cell you wish to write data to - default "A1"}
+\item{paste_coord}{string indicating the coordinates of the top left cell to write data to.
+Supports multi-letter columns (e.g., "A1", "AA100", "XFD1"). Default is "A1".}
 
-\item{clear_sheet}{logical indicating whether you'd like to clear the contents of the destination sheet before writing - default TRUE}
+\item{clear_sheet}{logical indicating whether to clear the contents of the destination sheet
+before writing. Default is TRUE.}
 
-\item{wb}{workbook object - default NULL}
+\item{wb}{workbook object. Default is NULL (creates or loads from wb_dir).}
 
-\item{wb_dir}{string indicating the workbook's directory}
+\item{wb_dir}{string indicating the workbook's file path}
 
-\item{save_wb}{logical indicating whether workbook should be saved}
+\item{save_wb}{logical indicating whether workbook should be saved. Default is FALSE.}
 
 \item{...}{arguments for other methods}
 }
+\value{
+The workbook object (invisibly)
+}
 \description{
-Default method for writing to excel
+Default method for writing to Excel
+}
+\examples{
+\dontrun{
+# Basic usage - write data frame to Excel
+write_wb(mtcars, sheet_name = "cars", wb_dir = "output.xlsx", save_wb = TRUE)
+
+# Write starting at a specific cell
+write_wb(iris[1:10, ], sheet_name = "flowers", paste_coord = "B5",
+         wb_dir = "positioned.xlsx", save_wb = TRUE)
+
+# Write to multi-letter column (e.g., column AA = 27th column)
+write_wb(data.frame(x = 1:5), sheet_name = "Sheet1", paste_coord = "AA1",
+         wb_dir = "wide.xlsx", save_wb = TRUE)
+
+# Build workbook incrementally
+wb <- write_wb(mtcars[1:5, ], sheet_name = "Sheet1", wb_dir = "report.xlsx")
+wb <- write_wb(iris[1:5, ], sheet_name = "Sheet2", wb = wb)
+openxlsx::saveWorkbook(wb, "report.xlsx", overwrite = TRUE)
+}
+
 }

@@ -2,18 +2,18 @@
 % Please edit documentation in R/read_excel.R
 \name{read_excel}
 \alias{read_excel}
-\title{read excel workbooks in to R}
+\title{Read Excel workbooks into R}
 \usage{
 read_excel(file_names_df, reqd_sheets)
 }
 \arguments{
-\item{file_names_df}{\code{data.frame} containing the directories of files you'd like to read}
+\item{file_names_df}{data.frame containing columns \code{file_path} and \code{file_name}}
 
-\item{reqd_sheets}{string vector with the names of the worksheets to read in}
+\item{reqd_sheets}{string vector with the names of the worksheets to read. Use NA for all sheets.}
 }
 \value{
-\code{tbl_df} with file_name and raw_excel_data as a nested named list where the list is indexed by the sheet name specified in reqd_sheets
+tbl_df with columns \code{file_name} and \code{raw_excel_data} (a nested named list indexed by sheet name)
 }
 \description{
-read excel workbooks in to R
+Reads multiple Excel workbooks and returns raw cell data in a tidy format.
 }

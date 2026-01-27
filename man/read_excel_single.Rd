@@ -2,18 +2,18 @@
 % Please edit documentation in R/read_excel.R
 \name{read_excel_single}
 \alias{read_excel_single}
-\title{read a single excel workbook}
+\title{Read a single Excel workbook}
 \usage{
 read_excel_single(file_path, reqd_sheets)
 }
 \arguments{
-\item{file_path}{string indicating the file path to the workbook of interest}
+\item{file_path}{string indicating the file path to the workbook}
 
-\item{reqd_sheets}{the sheets you'd like to copy from the workbook}
+\item{reqd_sheets}{the sheets to read from the workbook. Use NA to read all sheets.}
 }
 \value{
-a named list containing raw excel data in a tbl_df where the name equals the reqd_sheet
+a named list containing raw Excel data in a tbl_df, indexed by sheet name
 }
 \description{
-read a single excel workbook
+Reads raw cell data from an Excel workbook using tidyxl.
 }
