@@ -18,22 +18,15 @@
 #'   }
 #'
 #' @examples
-#' \dontrun{
-#' # Get all Excel files in a directory
-#' files <- get_file_names("path/to/excel/files")
+#' \donttest{
+#' # Create a temp directory with test files
+#' test_dir <- tempdir()
+#' openxlsx::write.xlsx(mtcars[1:3, ], file.path(test_dir, "sales.xlsx"))
+#' openxlsx::write.xlsx(iris[1:3, ], file.path(test_dir, "01 Data.xlsx"))
+#'
+#' # Get all Excel files in the directory
+#' files <- get_file_names(test_dir)
 #' files
-#' #>                         file_path    file_name
-#' #> 1 path/to/excel/files/sales.xlsx        sales
-#' #> 2 path/to/excel/files/01 Data.xlsx       Data
-#'
-#' # Search subdirectories
-#' files <- get_file_names("path/to/files", recursive = TRUE)
-#'
-#' # Only xlsx files (exclude xls, xlsm)
-#' files <- get_file_names("path/to/files", extensions = "xlsx")
-#'
-#' # Keep original file names without cleaning
-#' files <- get_file_names("path/to/files", clean_names = FALSE)
 #' }
 #'
 #' @export

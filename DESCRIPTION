@@ -9,6 +9,9 @@ Authors@R:
 Description: Read and write data between R and Excel. Provides tools for handling
     untidy spreadsheets, including support for password-protected workbooks and
     time series data. Reads data safely from copies to prevent file corruption.
+    Uses cell-level access via 'tidyxl' (Mayank et al. (2024)
+    <https://nacnudus.github.io/tidyxl/>) for flexible extraction from
+    presentation-style spreadsheets.
 Depends:
     R (>= 4.1.0)
 Imports:
@@ -24,6 +27,7 @@ Imports:
     tools
 Suggests:
     knitr,
+    readxl,
     rmarkdown,
     rpxl,
     testthat (>= 3.0.0),

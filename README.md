@@ -141,6 +141,66 @@ unprocessed tidyxl output.
 - zoo (time series support)
 - rpxl or XLConnect (password-protected files)
 
+## Why excelsioR?
+
+### Built on Great Tools
+
+excelsioR combines the power of [tidyxl](https://nacnudus.github.io/tidyxl/)
+(cell-level spreadsheet access) and [openxlsx](https://ycphs.github.io/openxlsx/)
+(Excel writing) into a workflow for batch processing presentation spreadsheets.
+
+**Presentation spreadsheets** are designed for humans: titles, logos, merged
+cells, footnotes, multiple tables. They look great but need care to parse:
+
+```text
+     A          B          C          D
+1   [Logo]     Q3 2024 Sales Report
+2
+3              Jan        Feb        Mar
+4   North     $12,450    $13,200    $14,100
+5   South      $9,800    $10,100    $11,200
+```
+
+For a single file, you can use readxl with `skip` and `n_max`. But when you
+have 50 files with varying layouts, you need cell-level access and a workflow.
+
+### What excelsioR Adds
+
+```r
+# Read ALL files at once (any structure)
+all_data <- read_wb("data/messy_files/")
+
+# Access raw cells via tidyxl to handle any layout
+raw_cells <- all_data$raw_excel_data[[1]]
+raw_cells %>% filter(row >= 3, row <= 7)  # Extract just the data rows
+
+# Write results back for stakeholders who love Excel
+write_wb(clean_results, wb_dir = "report.xlsx", save_wb = TRUE)
+```
+
+### What This Package Provides
+
+| Feature             | Description                                       |
+| ------------------- | ------------------------------------------------- |
+| Batch reading       | Read entire folders of Excel files at once        |
+| Cell-level access   | Raw tidyxl data for any spreadsheet structure     |
+| Structured output   | Nested tibbles for easy filtering                 |
+| Multi-sheet writing | Write named lists as multi-sheet workbooks        |
+| Password support    | Unlock protected workbooks automatically          |
+
+### Try the Demo
+
+Run the interactive demo to see excelsioR handle messy spreadsheets:
+
+```r
+source(system.file("examples/messy_spreadsheets_demo.R", package = "excelsioR"))
+```
+
+This creates messy spreadsheets, reads them with excelsioR, extracts clean
+data, and writes a multi-sheet report.
+
+See `vignette("Taming Messy Spreadsheets")` for a detailed walkthrough.
+
 ## License
 
 GPL-3

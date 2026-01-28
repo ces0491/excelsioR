@@ -32,6 +32,7 @@
 #' Requires Java to be installed on your system.
 #'
 #' @examples
+#' # Example requires rpxl or XLConnect and password-protected files
 #' \dontrun{
 #' # Prepare file info
 #' files_to_unlock <- data.frame(
@@ -42,15 +43,11 @@
 #' # Unlock - will prompt for password in RStudio
 #' unlock_wb(files_to_unlock)
 #'
-#' # Or provide password directly (less secure)
+#' # Or provide password directly
 #' unlock_wb(files_to_unlock, wb_password = "secret123")
 #'
 #' # Force specific backend
 #' unlock_wb(files_to_unlock, wb_password = "secret", backend = "rpxl")
-#' unlock_wb(files_to_unlock, wb_password = "secret", backend = "xlconnect")
-#'
-#' # Use with read_wb for password-protected files
-#' data <- read_wb("protected_files", password_protected = TRUE)
 #' }
 #'
 #' @export

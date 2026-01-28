@@ -6,7 +6,15 @@
 \usage{
 lhs \%>\% rhs
 }
+\arguments{
+\item{lhs}{A value or the dplyr placeholder.}
+
+\item{rhs}{A function call using the dplyr semantics.}
+}
+\value{
+The result of calling \code{rhs(lhs)}.
+}
 \description{
-Pipe operator
+See \code{dplyr::\link[dplyr:reexports]{\%>\%}} for details.
 }
 \keyword{internal}
