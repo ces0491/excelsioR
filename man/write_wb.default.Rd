@@ -41,22 +41,18 @@ The workbook object (invisibly)
 Default method for writing to Excel
 }
 \examples{
-\dontrun{
+\donttest{
 # Basic usage - write data frame to Excel
-write_wb(mtcars, sheet_name = "cars", wb_dir = "output.xlsx", save_wb = TRUE)
+write_wb(mtcars[1:5, ], sheet_name = "cars",
+         wb_dir = file.path(tempdir(), "output.xlsx"), save_wb = TRUE)
 
 # Write starting at a specific cell
-write_wb(iris[1:10, ], sheet_name = "flowers", paste_coord = "B5",
-         wb_dir = "positioned.xlsx", save_wb = TRUE)
+write_wb(iris[1:5, ], sheet_name = "flowers", paste_coord = "B5",
+         wb_dir = file.path(tempdir(), "positioned.xlsx"), save_wb = TRUE)
 
 # Write to multi-letter column (e.g., column AA = 27th column)
-write_wb(data.frame(x = 1:5), sheet_name = "Sheet1", paste_coord = "AA1",
-         wb_dir = "wide.xlsx", save_wb = TRUE)
-
-# Build workbook incrementally
-wb <- write_wb(mtcars[1:5, ], sheet_name = "Sheet1", wb_dir = "report.xlsx")
-wb <- write_wb(iris[1:5, ], sheet_name = "Sheet2", wb = wb)
-openxlsx::saveWorkbook(wb, "report.xlsx", overwrite = TRUE)
+write_wb(data.frame(x = 1:3), sheet_name = "Sheet1", paste_coord = "AA1",
+         wb_dir = file.path(tempdir(), "wide.xlsx"), save_wb = TRUE)
 }
 
 }

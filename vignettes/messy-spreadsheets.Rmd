@@ -1,0 +1,300 @@
+---
+title: "Taming Messy Spreadsheets"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Taming Messy Spreadsheets}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+ collapse = TRUE,
+  comment = "#>"
+)
+library(excelsioR)
+library(dplyr)
+library(tidyr)
+```
+
+## Two Kinds of Spreadsheets
+
+There's a fundamental difference between:
+
+1. **Data spreadsheets** - Tables designed to store data: headers in row 1,
+   one record per row, consistent columns. readxl handles these brilliantly.
+
+2. **Presentation spreadsheets** - Documents designed for humans: titles,
+   logos, merged cells, footnotes, multiple tables per sheet. These look
+   great printed but require more care to parse.
+
+Many spreadsheets in the wild are presentation spreadsheets:
+
+```text
+     A          B          C          D          E
+1   [Company Logo]        Q3 2024 Sales Report
+2
+3                    Jan        Feb        Mar
+4   North         $12,450    $13,200    $14,100
+5   South          $9,800    $10,100    $11,200
+6   East          $11,300    $11,800    $12,400
+7   West          $10,200    $10,500    $10,900
+8
+9   Notes: Figures in USD. Excludes returns.
+```
+
+With readxl, you'd specify `skip = 2`, `n_max = 4`, and clean up column names.
+That works well for one file - but what about 50 files with varying layouts?
+
+## Building on tidyxl
+
+[tidyxl](https://nacnudus.github.io/tidyxl/) is an excellent package that reads
+every cell with its exact position, formatting, and value. This gives you
+complete control over extraction from any spreadsheet structure.
+
+excelsioR builds on tidyxl to provide a complete workflow:
+
+- **Batch processing**: Read entire folders of files at once
+- **Structured output**: Nested tibbles you can unnest and filter
+- **Write capabilities**: Send results back to Excel with openxlsx
+- **Password support**: Unlock protected workbooks automatically
+
+### Creating a Reproducible Example
+
+Let's create a messy spreadsheet to demonstrate:
+
+```{r create-messy-data}
+library(excelsioR)
+library(openxlsx)
+
+# Create a temp directory for our examples
+demo_dir <- tempdir()
+
+# Build a "human-friendly" but analysis-hostile spreadsheet
+wb <- createWorkbook()
+addWorksheet(wb, "Sales Report")
+
+# Row 1: Title (not headers!)
+writeData(wb, "Sales Report", x = "Q3 2024 Regional Sales", startRow = 1, startCol = 2)
+
+# Row 3: Actual headers
+writeData(wb, "Sales Report", x = data.frame(
+  Region = character(), Jan = numeric(), Feb = numeric(), Mar = numeric()
+), startRow = 3)
+
+# Row 4-7: Data
+sales_data <- data.frame(
+  Region = c("North", "South", "East", "West"),
+  Jan = c(12450, 9800, 11300, 10200),
+  Feb = c(13200, 10100, 11800, 10500),
+  Mar = c(14100, 11200, 12400, 10900)
+)
+writeData(wb, "Sales Report", x = sales_data, startRow = 4, colNames = FALSE)
+
+# Row 9: Footnote
+writeData(wb, "Sales Report", x = "Notes: Figures in USD", startRow = 9, startCol = 1)
+
+# Save it
+messy_file <- file.path(demo_dir, "messy_sales.xlsx")
+saveWorkbook(wb, messy_file, overwrite = TRUE)
+
+cat("Created:", messy_file, "\n")
+```
+
+### Default Behavior
+
+```{r standard-read, error=TRUE}
+# Default read without specifying structure:
+readxl::read_excel(messy_file)
+```
+
+Without hints about the structure, the first row becomes column names. You
+could specify `skip = 2`, `n_max = 4` to extract the data correctly. For a
+single file, that works great.
+
+But with many files having different layouts, cell-level access is useful:
+
+### Cell-Level Access with excelsioR
+
+```{r excelsior-read}
+# Read using excelsioR's tidyxl-based approach
+result <- read_wb(
+  source_data_dir = demo_dir,
+  reqd_wkbks = "messy_sales"
+)
+
+# What we get back
+result
+```
+The `raw_excel_data` column contains every cell with its exact position.
+The `all_excel_data_tbl` column contains processed data based on common
+spreadsheet patterns.
+
+```{r examine-raw}
+# Look at the raw cell data (first file, first sheet)
+raw_cells <- result$raw_excel_data[[1]][[1]]
+head(raw_cells, 10)
+```
+
+Now you have complete control. You can:
+
+1. Filter to only the data rows (4-7)
+2. Ignore the title and footnote
+3. Reconstruct the table exactly as intended
+
+```{r extract-clean}
+# Extract just the data we want
+clean_data <- raw_cells %>%
+  filter(row >= 4, row <= 7, !is_blank) %>%
+  select(row, col, numeric, character) %>%
+  mutate(value = coalesce(as.character(numeric), character)) %>%
+  select(row, col, value) %>%
+  pivot_wider(names_from = col, values_from = value)
+
+# Rename columns properly
+names(clean_data) <- c("row_num", "Region", "Jan", "Feb", "Mar")
+clean_data <- clean_data %>%
+  select(-row_num) %>%
+  mutate(across(Jan:Mar, as.numeric))
+
+clean_data
+```
+
+## Batch Processing: The Real Power
+
+The true value of excelsioR emerges when you have many files:
+
+```{r batch-demo}
+# Create multiple messy files with different structures
+batch_dir <- file.path(tempdir(), "batch_demo")
+dir.create(batch_dir, showWarnings = FALSE)
+regions <- c("north", "south", "east", "west")
+
+for (region in regions) {
+  wb <- createWorkbook()
+  addWorksheet(wb, "Data")
+
+  # Each file has slightly different layout
+  start_row <- 2
+
+  writeData(wb, "Data", x = paste(toupper(region), "Region Report"),
+            startRow = 1, startCol = 1)
+
+  monthly_data <- data.frame(
+    Month = month.abb[1:3],
+    Sales = c(10000, 11000, 12000),
+    Returns = c(200, 250, 300)
+  )
+
+  writeData(wb, "Data", x = monthly_data, startRow = start_row)
+  saveWorkbook(wb, file.path(batch_dir, paste0(region, "_report.xlsx")),
+               overwrite = TRUE)
+}
+
+# One function call reads all files
+all_reports <- read_wb(batch_dir)
+all_reports
+
+# See what files we got
+all_reports$file_name
+```
+
+Compare this to the manual approach:
+
+```r
+# Without excelsioR (don't run this)
+files <- list.files("path/to/files", pattern = "\\.xlsx$", full.names = TRUE)
+all_data <- list()
+for (f in files) {
+  sheets <- readxl::excel_sheets(f)
+  for (s in sheets) {
+    # But wait - which row has headers? Different for each file...
+    # And some files are password protected...
+    # And some have merged cells...
+    all_data[[length(all_data) + 1]] <- readxl::read_excel(f, sheet = s)
+  }
+}
+# Now somehow combine these misaligned data frames...
+```
+
+## Writing Results Back
+
+After analysis, write results to Excel for stakeholders who prefer spreadsheets:
+
+```{r write-demo}
+# Summarize the data
+summary_data <- data.frame(
+  Region = c("North", "South", "East", "West"),
+  Q1_Total = c(39750, 31100, 35500, 31600),
+  Avg_Monthly = c(13250, 10367, 11833, 10533)
+)
+
+# Write single sheet
+write_wb(
+  r_data = summary_data,
+  sheet_name = "Summary",
+  wb_dir = file.path(demo_dir, "analysis_output.xlsx"),
+  save_wb = TRUE
+)
+
+# Write multiple sheets from a named list
+multi_sheet_data <- list(
+  "Executive Summary" = summary_data,
+  "North Detail" = data.frame(Month = month.abb[1:3], Sales = c(12450, 13200, 14100)),
+  "South Detail" = data.frame(Month = month.abb[1:3], Sales = c(9800, 10100, 11200))
+)
+
+write_wb(
+  r_data = multi_sheet_data,
+  wb_dir = file.path(demo_dir, "full_report.xlsx"),
+  save_wb = TRUE
+)
+```
+
+### Writing to Specific Locations
+
+Need to paste data into an existing template? Use `paste_coord`:
+
+```{r paste-coord}
+# Write to cell AA10 (multi-letter columns supported)
+write_wb(
+  r_data = data.frame(x = 1:3, y = 4:6),
+  sheet_name = "Template",
+  paste_coord = "C5",  # Start at column C, row 5
+  wb_dir = file.path(demo_dir, "template_output.xlsx"),
+  save_wb = TRUE
+)
+```
+
+## Common Messy Spreadsheet Patterns
+
+excelsioR helps with these common issues:
+
+| Pattern | Problem | Solution |
+| ------- | ------- | -------- |
+| Title rows | Headers aren't in row 1 | Use `raw_excel_data` to find actual headers |
+| Footnotes | Extra rows after data | Filter by row position |
+| Merged cells | Values only in top-left | tidyxl tracks merge ranges |
+| Multiple tables | Several datasets per sheet | Filter by row/col ranges |
+| Mixed types | Numbers stored as text | Access `numeric`, `character`, `date` columns separately |
+| Inconsistent layouts | Each file structured differently | Programmatic extraction per file |
+
+## Key Takeaways
+
+1. **Human-friendly != analysis-friendly**: Spreadsheets designed for reading
+   are often hard to parse programmatically
+
+2. **Cell-level access matters**: When structure varies, you need the raw cells,
+   not a guessed data frame
+
+3. **Batch processing saves time**: Reading one file is easy; reading 50 files
+   with different layouts is where excelsioR shines
+
+4. **Keep Excel as the interface**: Your stakeholders get the spreadsheets they
+   want; you get reproducible R code
+
+## Next Steps
+
+- See `?read_wb` for all reading options
+- See `?write_wb` for writing options including time series support
+- See `?unlock_wb` for password-protected files

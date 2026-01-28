@@ -34,14 +34,19 @@ load_wb <- function(wb = NULL, wb_dir = NULL) {
 #' @param r_data an object to be written to an xlsx workbook
 #' @param ... arguments for other methods
 #'
+#' @return An openxlsx workbook object (invisibly). The workbook can be passed
+#'   to subsequent `write_wb()` calls to add more sheets, then saved with
+#'   [openxlsx::saveWorkbook()].
+#'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Write a data frame to Excel
-#' write_wb(mtcars, sheet_name = "cars", wb_dir = "output.xlsx", save_wb = TRUE)
+#' write_wb(mtcars, sheet_name = "cars",
+#'          wb_dir = file.path(tempdir(), "output.xlsx"), save_wb = TRUE)
 #'
 #' # Write a named list (each element becomes a sheet)
 #' sheets <- list(cars = mtcars[1:5, ], flowers = iris[1:5, ])
-#' write_wb(sheets, wb_dir = "multi_sheet.xlsx", save_wb = TRUE)
+#' write_wb(sheets, wb_dir = file.path(tempdir(), "multi_sheet.xlsx"), save_wb = TRUE)
 #' }
 #'
 #' @export
@@ -64,22 +69,18 @@ write_wb <- function(r_data, ...) UseMethod("write_wb")
 #' @return The workbook object (invisibly)
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Basic usage - write data frame to Excel
-#' write_wb(mtcars, sheet_name = "cars", wb_dir = "output.xlsx", save_wb = TRUE)
+#' write_wb(mtcars[1:5, ], sheet_name = "cars",
+#'          wb_dir = file.path(tempdir(), "output.xlsx"), save_wb = TRUE)
 #'
 #' # Write starting at a specific cell
-#' write_wb(iris[1:10, ], sheet_name = "flowers", paste_coord = "B5",
-#'          wb_dir = "positioned.xlsx", save_wb = TRUE)
+#' write_wb(iris[1:5, ], sheet_name = "flowers", paste_coord = "B5",
+#'          wb_dir = file.path(tempdir(), "positioned.xlsx"), save_wb = TRUE)
 #'
 #' # Write to multi-letter column (e.g., column AA = 27th column)
-#' write_wb(data.frame(x = 1:5), sheet_name = "Sheet1", paste_coord = "AA1",
-#'          wb_dir = "wide.xlsx", save_wb = TRUE)
-#'
-#' # Build workbook incrementally
-#' wb <- write_wb(mtcars[1:5, ], sheet_name = "Sheet1", wb_dir = "report.xlsx")
-#' wb <- write_wb(iris[1:5, ], sheet_name = "Sheet2", wb = wb)
-#' openxlsx::saveWorkbook(wb, "report.xlsx", overwrite = TRUE)
+#' write_wb(data.frame(x = 1:3), sheet_name = "Sheet1", paste_coord = "AA1",
+#'          wb_dir = file.path(tempdir(), "wide.xlsx"), save_wb = TRUE)
 #' }
 #'
 #' @export
@@ -155,16 +156,18 @@ write_wb.default <- function(r_data, sheet_name, paste_coord = "A1", clear_sheet
 #' @return The workbook object (invisibly)
 #'
 #' @examples
-#' \dontrun{
-#' library(zoo)
+#' \donttest{
+#' if (requireNamespace("zoo", quietly = TRUE)) {
+#'   library(zoo)
+#'   # Create a zoo time series
+#'   dates <- seq(as.Date("2024-01-01"), by = "day", length.out = 5)
+#'   values <- data.frame(price = 1:5, volume = 10:14)
+#'   ts_data <- zoo(values, dates)
 #'
-#' # Create a zoo time series
-#' dates <- seq(as.Date("2024-01-01"), by = "day", length.out = 10)
-#' values <- data.frame(price = cumsum(rnorm(10)), volume = rpois(10, 100))
-#' ts_data <- zoo(values, dates)
-#'
-#' # Write to Excel - date column is added automatically
-#' write_wb(ts_data, sheet_name = "daily", wb_dir = "timeseries.xlsx", save_wb = TRUE)
+#'   # Write to Excel - date column is added automatically
+#'   write_wb(ts_data, sheet_name = "daily",
+#'            wb_dir = file.path(tempdir(), "timeseries.xlsx"), save_wb = TRUE)
+#' }
 #' }
 #'
 #' @export
@@ -210,16 +213,15 @@ write_wb.xts <- write_wb.zoo
 #' @return The workbook object (invisibly)
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Create a named list of data frames
 #' my_sheets <- list(
 #'   summary = data.frame(metric = c("Total", "Average"), value = c(100, 50)),
-#'   details = mtcars[1:10, ],
-#'   metadata = data.frame(created = Sys.Date(), author = "Me")
+#'   details = mtcars[1:5, ]
 #' )
 #'
 #' # Write all sheets at once
-#' write_wb(my_sheets, wb_dir = "multi_sheet_report.xlsx", save_wb = TRUE)
+#' write_wb(my_sheets, wb_dir = file.path(tempdir(), "multi_sheet.xlsx"), save_wb = TRUE)
 #' }
 #'
 #' @export
@@ -257,8 +259,10 @@ write_wb.list <- function(r_data, clear_sheet = TRUE, wb = NULL, wb_dir = NULL,
 #' @param write_dir string indicating the directory to write files to
 #' @param ... additional arguments passed to write_wb
 #'
+#' @return NULL invisibly. Called for side effect of writing Excel files.
+#'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Create a tibble defining multiple workbooks and sheets
 #' write_tbl <- tibble::tibble(
 #'   name = c("sales", "sales", "inventory"),
@@ -271,7 +275,7 @@ write_wb.list <- function(r_data, clear_sheet = TRUE, wb = NULL, wb_dir = NULL,
 #' )
 #'
 #' # Creates sales.xlsx (with Q1 and Q2 sheets) and inventory.xlsx (with stock sheet)
-#' write_wb_multi(write_tbl, write_dir = "output")
+#' write_wb_multi(write_tbl, write_dir = tempdir())
 #' }
 #'
 #' @export

@@ -11,18 +11,24 @@ write_wb(r_data, ...)
 
 \item{...}{arguments for other methods}
 }
+\value{
+An openxlsx workbook object (invisibly). The workbook can be passed
+to subsequent \code{write_wb()} calls to add more sheets, then saved with
+\code{\link[openxlsx:saveWorkbook]{openxlsx::saveWorkbook()}}.
+}
 \description{
 Generic function to write R objects to an Excel workbook. Supports data frames,
 lists (multiple sheets), and zoo/xts time series objects.
 }
 \examples{
-\dontrun{
+\donttest{
 # Write a data frame to Excel
-write_wb(mtcars, sheet_name = "cars", wb_dir = "output.xlsx", save_wb = TRUE)
+write_wb(mtcars, sheet_name = "cars",
+         wb_dir = file.path(tempdir(), "output.xlsx"), save_wb = TRUE)
 
 # Write a named list (each element becomes a sheet)
 sheets <- list(cars = mtcars[1:5, ], flowers = iris[1:5, ])
-write_wb(sheets, wb_dir = "multi_sheet.xlsx", save_wb = TRUE)
+write_wb(sheets, wb_dir = file.path(tempdir(), "multi_sheet.xlsx"), save_wb = TRUE)
 }
 
 }

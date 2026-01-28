@@ -56,41 +56,23 @@ the originals to prevent potential file corruption.
 }
 
 \examples{
-\dontrun{
-# Read all Excel files from a directory
-data <- read_wb("path/to/excel/files")
+\donttest{
+# Create test files in a temp directory
+test_dir <- file.path(tempdir(), "read_wb_example")
+dir.create(test_dir, showWarnings = FALSE)
+openxlsx::write.xlsx(mtcars[1:5, ], file.path(test_dir, "cars.xlsx"))
+openxlsx::write.xlsx(iris[1:5, ], file.path(test_dir, "flowers.xlsx"))
 
-# View the structure
+# Read all Excel files from the directory
+data <- read_wb(test_dir)
 data
-#> # A tibble: 3 x 3
-#>   file_name    raw_excel_data all_excel_data_tbl
-#>   <chr>        <list>         <list>
-#> 1 sales_2024   <named list>   <tibble>
-#> 2 inventory    <named list>   <tibble>
 
-# Read specific workbooks
-data <- read_wb(
-  source_data_dir = "path/to/files",
-  reqd_wkbks = c("sales_2024", "inventory")
-)
-
-# Read specific sheets from all workbooks
-data <- read_wb(
-  source_data_dir = "path/to/files",
-  reqd_sheets = c("Summary", "Q4")
-)
-
-# Extract processed data for one file
-sales_data <- data \%>\%
-  dplyr::filter(file_name == "sales_2024") \%>\%
-  dplyr::pull(all_excel_data_tbl) \%>\%
-  .[[1]]
+# Read a specific workbook
+data <- read_wb(test_dir, reqd_wkbks = "cars")
 
 # Access raw tidyxl data for complex layouts
-raw <- data$raw_excel_data[[1]]$Sheet1
-raw \%>\%
-  dplyr::filter(!is_blank) \%>\%
-  dplyr::select(row, col, character, numeric, date)
+raw <- data$raw_excel_data[[1]][[1]]
+head(raw)
 }
 
 }

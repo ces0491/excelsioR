@@ -53,16 +53,18 @@ The workbook object (invisibly)
 Converts the time series to a data frame with a date column and writes to Excel.
 }
 \examples{
-\dontrun{
-library(zoo)
+\donttest{
+if (requireNamespace("zoo", quietly = TRUE)) {
+  library(zoo)
+  # Create a zoo time series
+  dates <- seq(as.Date("2024-01-01"), by = "day", length.out = 5)
+  values <- data.frame(price = 1:5, volume = 10:14)
+  ts_data <- zoo(values, dates)
 
-# Create a zoo time series
-dates <- seq(as.Date("2024-01-01"), by = "day", length.out = 10)
-values <- data.frame(price = cumsum(rnorm(10)), volume = rpois(10, 100))
-ts_data <- zoo(values, dates)
-
-# Write to Excel - date column is added automatically
-write_wb(ts_data, sheet_name = "daily", wb_dir = "timeseries.xlsx", save_wb = TRUE)
+  # Write to Excel - date column is added automatically
+  write_wb(ts_data, sheet_name = "daily",
+           wb_dir = file.path(tempdir(), "timeseries.xlsx"), save_wb = TRUE)
+}
 }
 
 }

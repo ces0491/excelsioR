@@ -6,12 +6,17 @@ utils::globalVariables(c(
 
 #' Pipe operator
 #'
+#' See \code{dplyr::\link[dplyr:reexports]{\%>\%}} for details.
+#'
 #' @name %>%
 #' @rdname pipe
 #' @keywords internal
 #' @importFrom dplyr %>%
 #' @export
 #' @usage lhs \%>\% rhs
+#' @param lhs A value or the dplyr placeholder.
+#' @param rhs A function call using the dplyr semantics.
+#' @return The result of calling `rhs(lhs)`.
 NULL
 
 #' Convert Excel column letters to numeric index

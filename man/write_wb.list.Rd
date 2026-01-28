@@ -34,16 +34,15 @@ The workbook object (invisibly)
 Each named element of the list is written to a separate sheet.
 }
 \examples{
-\dontrun{
+\donttest{
 # Create a named list of data frames
 my_sheets <- list(
   summary = data.frame(metric = c("Total", "Average"), value = c(100, 50)),
-  details = mtcars[1:10, ],
-  metadata = data.frame(created = Sys.Date(), author = "Me")
+  details = mtcars[1:5, ]
 )
 
 # Write all sheets at once
-write_wb(my_sheets, wb_dir = "multi_sheet_report.xlsx", save_wb = TRUE)
+write_wb(my_sheets, wb_dir = file.path(tempdir(), "multi_sheet.xlsx"), save_wb = TRUE)
 }
 
 }

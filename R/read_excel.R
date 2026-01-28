@@ -25,13 +25,13 @@ read_excel_single <- function(file_path, reqd_sheets) {
     raw_excel <- suppressWarnings(tidyxl::xlsx_cells(file_path, sheets = reqd_sheets))
     assert_present(names(raw_excel), "sheet")
 
-    grouped_excel <- raw_excel %>%
-      dplyr::group_by(sheet)
+    # Split by sheet and preserve names
+    wsheet_list <- raw_excel %>%
+      dplyr::group_by(sheet) %>%
+      dplyr::group_split(.keep = TRUE)
 
-    wsheet_list <- grouped_excel %>%
-      dplyr::group_split()
-
-    names(wsheet_list) <- dplyr::group_keys(grouped_excel)[[1]]
+    # Extract sheet names from each split
+    names(wsheet_list) <- purrr::map_chr(wsheet_list, ~ .x$sheet[1])
 
   } else {
     wsheet_list <- list()

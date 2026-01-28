@@ -18,12 +18,15 @@ write_wb_multi(write_tbl, write_dir, ...)
 
 \item{...}{additional arguments passed to write_wb}
 }
+\value{
+NULL invisibly. Called for side effect of writing Excel files.
+}
 \description{
 Takes a tibble with columns specifying file names, sheet names, and data,
 and writes each data element to the appropriate file and sheet.
 }
 \examples{
-\dontrun{
+\donttest{
 # Create a tibble defining multiple workbooks and sheets
 write_tbl <- tibble::tibble(
   name = c("sales", "sales", "inventory"),
@@ -36,7 +39,7 @@ write_tbl <- tibble::tibble(
 )
 
 # Creates sales.xlsx (with Q1 and Q2 sheets) and inventory.xlsx (with stock sheet)
-write_wb_multi(write_tbl, write_dir = "output")
+write_wb_multi(write_tbl, write_dir = tempdir())
 }
 
 }
